@@ -1,0 +1,16 @@
+:: StoryStylesheet
+
+#menu-item-saves {
+    display: none;
+}
+
+:: StoryData
+{
+    "ifid": "AC97DA46-7735-43CC-8EB4-9F92C2840E0B"
+}
+
+:: StoryCaption
+<<listfuncs>>
+<<listtypes>>
+<<listfiles>>
+<<listsans>>

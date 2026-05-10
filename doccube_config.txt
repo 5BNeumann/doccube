@@ -1,0 +1,4 @@
+source_dir:src/
+name:Doccube
+desc:A small documentation tool written in nim that outputs sugarcube
+sugarcube_out:true

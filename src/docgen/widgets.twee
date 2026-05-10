@@ -1,0 +1,45 @@
+:: Widgets [widget]
+
+<<widget "registerfunc">>
+	<<run $funcs.push(_args[0])>>
+<</widget>>
+
+<<widget "registertype">>
+	<<run $types.push(_args[0])>>
+<</widget>>
+
+<<widget "registersan">>
+	<<run $sans.push(_args[0])>>
+<</widget>>
+
+<<widget "registerfile">>
+	<<set $files.push(_args[0])>>
+<</widget>>
+
+<<widget "listfuncs">>
+	<h2>Functions</h2>
+	<<for _i, _func range $funcs>>
+		<<link _func _func>><</link>>
+	<</for>>
+<</widget>>
+
+<<widget "listtypes">>
+	<h2>Types</h2>
+	<<for _i, _type range $types>>
+		<<link _type _type>><</link>>
+	<</for>>
+<</widget>>
+
+<<widget "listsans">>
+	<h2>Sanity</h2>
+	<<for _i, _san range $sans>>
+		<<link _san _san>><</link>>
+	<</for>>
+<</widget>>
+
+<<widget "listfiles">>
+	<h2>Files</h2>
+	<<for _i, _file range $files>>
+		<<link _file _file>><</link>>
+	<</for>>
+<</widget>>
