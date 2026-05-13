@@ -1,21 +1,41 @@
 :: Widgets [widget]
 
+<!-- @doc registerfunc
+<!-- @kind func
+<!-- @desc Registers a function to the list.
+-->
 <<widget "registerfunc">>
 	<<run $funcs.push(_args[0])>>
 <</widget>>
 
+<!-- @doc registertype
+<!-- @kind func
+<!-- @desc Registers a type to the list.
+-->
 <<widget "registertype">>
 	<<run $types.push(_args[0])>>
 <</widget>>
 
+<!-- @doc registersan
+<!-- @kind func
+<!-- @desc Registers a sanity to the list.
+-->
 <<widget "registersan">>
 	<<run $sans.push(_args[0])>>
 <</widget>>
 
+<!-- @doc registerfile
+<!-- @kind func
+<!-- @desc Registers a file to the list.
+-->
 <<widget "registerfile">>
-	<<set $files.push(_args[0])>>
+	<<set $files.push(_args[0] + "-file")>>
 <</widget>>
 
+<!-- @doc listfuncs
+<!-- @kind func
+<!-- @desc Displays the list of documented functions.
+-->
 <<widget "listfuncs">>
 	<h2>Functions</h2>
 	<<for _i, _func range $funcs>>
@@ -23,6 +43,10 @@
 	<</for>>
 <</widget>>
 
+<!-- @doc listtypes
+<!-- @kind func
+<!-- @desc Displays the list of documented types.
+-->
 <<widget "listtypes">>
 	<h2>Types</h2>
 	<<for _i, _type range $types>>
@@ -30,6 +54,10 @@
 	<</for>>
 <</widget>>
 
+<!-- @doc listsans
+<!-- @kind func
+<!-- @desc Displays the list of documented sanities.
+-->
 <<widget "listsans">>
 	<h2>Sanity</h2>
 	<<for _i, _san range $sans>>
@@ -37,9 +65,14 @@
 	<</for>>
 <</widget>>
 
+<!-- @doc listfiles
+<!-- @kind func
+<!-- @desc Displays the list of documented files.
+-->
 <<widget "listfiles">>
 	<h2>Files</h2>
 	<<for _i, _file range $files>>
-		<<link _file _file>><</link>>
+		<<set _vname to _file.replace("-file", "")>>
+		<<link _vname _file>><</link>>
 	<</for>>
 <</widget>>

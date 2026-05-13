@@ -1,3 +1,6 @@
+when defined(release):
+  {.checks: off, optimization: speed.}
+
 import
   std/[dirs, paths, strutils, json],
   ../types
@@ -19,12 +22,17 @@ const
   SAN_STRING: string = "\n<<registersan $1>>"
   FILE_STRING: string = "\n<<registerfile $1>>"
   ALL_SYMBOLS: string = "\n<<listfuncs>><<listtypes>><<listfiles>><<listsans>>\n"
+  TITLE: string = "<h1>$1</h1>"
+  SUBTITLE: string = "<h2>$1</h2>"
+  FUNCALL: string = "$1($2): $3\n"
+  PARAMDESC: string = "$1: $2\n$3\n"
+  INCLUDE: string = "<<include $1>>\n"
 
 
 # @doc makeStandardPassage
 # @kind func
 # @desc This function dynamically generates the standard passages such as Start, StoryInit and StoryTitle
-# @param project: ProjectDesc, gives the name and description of the project
+# @param project: [[ProjectDesc]], gives the name and description of the project
 # @returns string
 proc makeStandardPassage(project: ProjectDesc): string =
   let
@@ -54,38 +62,57 @@ proc makeStandardPassage(project: ProjectDesc): string =
       init &= FILE_STRING % [$ file.splitFile.name]
   return "$1\n$2\n$3\n$4\n$5\n" % [STANDARD_WIDGETS, STATIC_PASSAGES, title, start, init]
 
+
+proc args(fun: JsonNode): string =
+  var t: seq[string] = @[]
+  for i in fun["params"]:
+    t.add(i[0].getStr & " : " & i[1].getStr)
+  return t.join(", ")
+
+
 # @doc makeSingleFile
 # @kind func
-# @desc Generates the documentation for a single file (functions, types and sanity)
-# @param docContent: JsonNode, the documentation in Json format
+# @desc Generates the documentation for a single file (functions, types and sanity).
+# @param docContent: JsonNode, The documentation in Json format.
+# @param filename: string, The name of the documented file.
 # @returns string
-proc makeSingleFile(docContent: JsonNode): string =
+proc makeSingleFile(docContent: JsonNode, filename: string): string =
   var
+    fileSection: string = ""
     functionSection: string = ""
     typesSection: string = ""
     sanitySection: string = ""
+  fileSection &= PASSAGE_NAME % [filename & "-file"]
   if docContent.hasKey("functions"):
     for fun in docContent["functions"]:
+      fileSection &= INCLUDE % [fun["name"].getStr]
       functionSection &= PASSAGE_NAME % [fun["name"].getStr]
+      functionSection &= SUBTITLE % [fun["name"].getStr] & "\n"
+      functionSection &= FUNCALL % [fun["name"].getStr, args(fun), fun["returns"].getStr]
       functionSection &= fun["desc"].getStr & "\n"
-      functionSection &= "params : " & $ fun["params"].getElems & "\n"
-      functionSection &= "returns : " & fun["returns"].getStr & "\n"
+      for param in fun["params"]:
+        functionSection &= PARAMDESC % [param[0].getStr, param[1].getStr, param[2].getStr]
+      if fun["returns"].getStr != "":
+        functionSection &= "returns : " & fun["returns"].getStr & "\n"
   if docContent.hasKey("types"):
     for typ in docContent["types"]:
+      fileSection &= INCLUDE % [typ["name"].getStr]
       typesSection &= PASSAGE_NAME % [typ["name"].getStr]
       typesSection &= typ["desc"].getStr & "\n"
-      typesSection &= "fields : " & $ typ["fields"].getElems & "\n"
+      for field in typ["fields"]:
+        typesSection &= PARAMDESC % [field[0].getStr, field[1].getStr, field[2].getStr]
   if docContent.hasKey("sanity"):
     for san in docContent["sanity"]:
+      fileSection &= INCLUDE % [san["name"].getStr]
       sanitySection &= PASSAGE_NAME % [san["name"].getStr]
       sanitySection &= san["desc"].getStr & "\n"
       sanitySection &= """<meter id="sanity" value="$1" min="-128" max="127">$1</meter>""" % [$ san["level"].getInt] & "\n"
-  return functionSection & typesSection & sanitySection
+  return fileSection & functionSection & typesSection & sanitySection
 
 # @doc makeSugarcube
 # @kind func
 # @desc Creates a sugarcube documentation from pre-processed data. Public.
-# @param config: Config, the project's config, mostly used to get the name and description fo the project
+# @param config: [[Config]], the project's config, mostly used to get the name and description fo the project
 proc makeSugarcube*(config: Config) =
   var
     stdFile: File
@@ -100,5 +127,5 @@ proc makeSugarcube*(config: Config) =
     if ($ file).endsWith(".json"):
       createDir(Path("doc/sugarcube") / file.splitFile.dir)
       if docFiles.open($ (Path("doc/sugarcube") / file.changeFileExt("twee")), fmWrite):
-        docFiles.write(makeSingleFile(parseFile($ file)))
+        docFiles.write(makeSingleFile(parseFile($ file), $ file.splitFile.name))
         docFiles.close()

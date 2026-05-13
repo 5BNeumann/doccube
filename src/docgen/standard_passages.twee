@@ -1,4 +1,4 @@
-:: StoryStylesheet
+:: StoryStylesheet [stylesheet]
 
 #menu-item-saves {
     display: none;

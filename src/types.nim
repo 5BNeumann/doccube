@@ -1,3 +1,6 @@
+when defined(release):
+  {.checks: off, optimization: speed.}
+
 import std/paths
 
 type
