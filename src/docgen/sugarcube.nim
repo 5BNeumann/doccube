@@ -22,10 +22,11 @@ const
   SAN_STRING: string = "\n<<registersan $1>>"
   FILE_STRING: string = "\n<<registerfile $1>>"
   ALL_SYMBOLS: string = "\n<<listfuncs>><<listtypes>><<listfiles>><<listsans>>\n"
+  CODE_BLOCK: string = "<code>$1</code>\n" #"<pre><code>$1</code></pre>\n"
   TITLE: string = "<h1>$1</h1>"
   SUBTITLE: string = "<h2>$1</h2>"
-  FUNCALL: string = "$1($2): $3\n"
-  PARAMDESC: string = "$1: $2\n$3\n"
+  FUNCALL: string = CODE_BLOCK % ["$1($2): $3"]
+  PARAMDESC: string = CODE_BLOCK % ["$1: $2"] & "$3\n\n"
   INCLUDE: string = "<<include $1>>\n"
 
 
@@ -93,7 +94,7 @@ proc makeSingleFile(docContent: JsonNode, filename: string): string =
       for param in fun["params"]:
         functionSection &= PARAMDESC % [param[0].getStr, param[1].getStr, param[2].getStr]
       if fun["returns"].getStr != "":
-        functionSection &= "returns : " & fun["returns"].getStr & "\n"
+        functionSection &= "returns : " & CODE_BLOCK % [fun["returns"].getStr]
   if docContent.hasKey("types"):
     for typ in docContent["types"]:
       fileSection &= INCLUDE % [typ["name"].getStr]

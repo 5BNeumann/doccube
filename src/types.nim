@@ -29,9 +29,9 @@ type
 
 # @doc toProjectDesc
 # @kind func
-# @desc Converts a Config to a ProjectDesc
-# @param a: Config, the config to convert
-# @returns ProjectDesc
+# @desc Converts a [[Config]] to a [[ProjectDesc]]
+# @param a: [[Config]], the config to convert
+# @returns [[ProjectDesc]]
 proc toProjectDesc*(a: Config): ProjectDesc =
   return ProjectDesc(
     title : a.name,

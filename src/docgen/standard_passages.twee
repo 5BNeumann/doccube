@@ -4,6 +4,18 @@
     display: none;
 }
 
+#menu-item-restart {
+    display: none;
+}
+
+code {
+	border: 2px solid black;
+	background-color: #333333;
+	color: white;
+	padding:0.2em;
+	white-space: pre;
+}
+
 :: StoryData
 {
     "ifid": "AC97DA46-7735-43CC-8EB4-9F92C2840E0B"
