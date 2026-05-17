@@ -14,15 +14,15 @@ const
   PASSAGE_NAME: string = ":: $1\n"
   STANDARD_WIDGETS: string = slurp("widgets.twee")
   STATIC_PASSAGES: string = slurp("standard_passages.twee")
-  STORY_INIT: string = PASSAGE_NAME % ["StoryInit"] & "<<set $funcs to []>><<set $types to []>><<set $sans to []>><<set $files to []>>\n"
+  STORY_INIT: string = PASSAGE_NAME % ["StoryInit"] & "<<set $funcs to []>><<set $types to []>><<set $sans to []>><<set $files to []>><<set $allsymbols to []>>\n"
   STORY_START: string = PASSAGE_NAME % ["Start"]
   STORY_TITLE: string = PASSAGE_NAME % ["StoryTitle"]
   FUNC_STRING: string = "\n<<registerfunc $1>>"
   TYPE_STRING: string = "\n<<registertype $1>>"
   SAN_STRING: string = "\n<<registersan $1>>"
   FILE_STRING: string = "\n<<registerfile $1>>"
-  ALL_SYMBOLS: string = "\n<<listfuncs>><<listtypes>><<listfiles>><<listsans>>\n"
-  CODE_BLOCK: string = "<code>$1</code>\n" #"<pre><code>$1</code></pre>\n"
+  ALL_SYMBOLS: string = "\n<<listfuncs>><<listtypes>><<listfiles>><!--<<listsans>>-->\n"
+  CODE_BLOCK: string = "<code>$1</code>\n"
   TITLE: string = "<h1>$1</h1>"
   SUBTITLE: string = "<h2>$1</h2>"
   FUNCALL: string = CODE_BLOCK % ["$1($2): $3"]
@@ -59,7 +59,7 @@ proc makeStandardPassage(project: ProjectDesc): string =
       if jsonContent.hasKey("sanity"):
         sanityNode = jsonContent["sanity"]
         for san in sanityNode:
-          init &= SAN_STRING % [san["name"].getStr]
+          init &= SAN_STRING % [san["name"].getStr & "-" & $ file.splitFile.name]
       init &= FILE_STRING % [$ file.splitFile.name]
   return "$1\n$2\n$3\n$4\n$5\n" % [STANDARD_WIDGETS, STATIC_PASSAGES, title, start, init]
 
@@ -94,7 +94,7 @@ proc makeSingleFile(docContent: JsonNode, filename: string): string =
       for param in fun["params"]:
         functionSection &= PARAMDESC % [param[0].getStr, param[1].getStr, param[2].getStr]
       if fun["returns"].getStr != "":
-        functionSection &= "returns : " & CODE_BLOCK % [fun["returns"].getStr]
+        functionSection &= "returns : " & CODE_BLOCK % [fun["returns"].getStr] #Elems[0].getStr] & "$1\n\n" % [fun["returns"].getElems[1].getStr]
   if docContent.hasKey("types"):
     for typ in docContent["types"]:
       fileSection &= INCLUDE % [typ["name"].getStr]
@@ -104,8 +104,9 @@ proc makeSingleFile(docContent: JsonNode, filename: string): string =
         typesSection &= PARAMDESC % [field[0].getStr, field[1].getStr, field[2].getStr]
   if docContent.hasKey("sanity"):
     for san in docContent["sanity"]:
-      fileSection &= INCLUDE % [san["name"].getStr]
-      sanitySection &= PASSAGE_NAME % [san["name"].getStr]
+      fileSection &= INCLUDE % [san["name"].getStr & "-" & filename]
+      sanitySection &= PASSAGE_NAME % [san["name"].getStr & "-" & filename]
+      sanitySection &= SUBTITLE % [san["name"].getStr] & "\n"
       sanitySection &= san["desc"].getStr & "\n"
       sanitySection &= """<meter id="sanity" value="$1" min="-128" max="127">$1</meter>""" % [$ san["level"].getInt] & "\n"
   return fileSection & functionSection & typesSection & sanitySection

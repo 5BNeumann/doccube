@@ -22,7 +22,21 @@ code {
 }
 
 :: StoryCaption
+
+<<search>>
+
 <<listfuncs>>
 <<listtypes>>
 <<listfiles>>
-<<listsans>>
+<!--<<listsans>>-->
+
+:: Searchresult
+
+<<for _i, _symbol range $allsymbols>>
+	<<if _symbol.includes($search)>>
+		[[_symbol]]
+	<</if>>
+	<<run console.log(_symbol.includes($search))>>
+	<<run console.log(_symbol)>>
+	<<run console.log($search)>>
+<</for>>

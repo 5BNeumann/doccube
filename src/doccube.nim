@@ -1,12 +1,10 @@
-when defined(release):
-  {.checks: off, optimization: speed.}
-
 import
   std/[
     dirs,
     strutils,
     paths,
-    re,
+#    re,
+    pegs,
     json,
     jsonutils,
     tables,
@@ -35,7 +33,7 @@ type
     name: string
     desc: string = "No description. Yet. I hope at least."
     params: seq[array[3, string]] = @[]
-    returns: string
+    returns: string #array[2, string]
   # @doc Type
   # @kind type
   # @desc The container for Type documentation
@@ -63,13 +61,20 @@ type
 
 
 let
-  docRegex: Regex = re"@doc\s+([-\w\d_]+)"
-  kindRegex: Regex = re"@kind\s+(func|san|type)"
-  descRegex: Regex = re"@desc\s+(.*)$"
-  paramRegex: Regex = re"@param\s+(\w+)\s*:\s*([\w[\]]+)(?:,(.+))?$"
-  fieldRegex: Regex = re"@field\s+(\w+)\s*:\s*([\w[\]]+)(?:,(.+))?$"
-  returnRegex: Regex = re"@returns\s+([[\]\w\d_]+(\s\*+)?)"
-  levelRegex: Regex = re"@level\s+(\d+)"
+#  docRegex: Regex = re"@doc\s+([-\w\d_]+)"
+  docPeg: Peg = peg"'@doc' \s+ {[-a-zA-Z0-9_]+}"
+#  kindRegex: Regex = re"@kind\s+(func|san|type)"
+  kindPeg: Peg = peg"'@kind' \s+ {func/type/san}"
+#  descRegex: Regex = re"@desc\s+(.*)$"
+  descPeg: Peg = peg"'@desc' \s+ {.*} $"
+#  paramRegex: Regex = re"@param\s+(\w+)\s*:\s*([\w[\]]+)(?:,(.+))?$"
+  paramPeg: Peg = peg"'@param' \s+ {\w+} \s* ':' \s* {[a-zA-Z0-9_[\]]+} (','{.+})?$"
+#  fieldRegex: Regex = re"@field\s+(\w+)\s*:\s*([\w[\]]+)(?:,(.+))?$"
+  fieldPeg: Peg = peg"'@field' \s+ {\w+} \s* ':' \s* {[a-zA-Z0-9_[\]]+} (','{.+})?$"
+#  returnRegex: Regex = re"@returns\s+([[\]\w]+(?:\s\*+)?)"
+  returnPeg: Peg = peg"'@returns' \s+ {[[\]a-zA-Z0-9_]+(\s\*+)? (','{.+})?$}"
+#  levelRegex: Regex = re"@level\s+(\d+)"
+  levelPeg: Peg = peg"'@level' \s+ {\d+}"
 
 proc contains(lang: LanguageConfig, sub: string): bool =
   return sub == lang.extention
@@ -126,7 +131,6 @@ proc parseConfig(): Config =
 # @returns JsonNode
 proc fileDoc(content: string, lang: LanguageConfig): JsonNode =
   var
-    i: int32 = 0
     inDoc: bool = false
     lines: seq[string] = content.split("\n")
     subjectName: string
@@ -141,26 +145,26 @@ proc fileDoc(content: string, lang: LanguageConfig): JsonNode =
     if mutL.startsWith(lang.starter_comment):
       mutL.removePrefix(lang.starter_comment)
       mutL = mutL.strip()
-      if mutL =~ docRegex:
+      if mutL =~ docPeg:
         subjectName = matches[0]
         inDoc = true
-      elif mutL =~ kindRegex and inDoc:
+      elif mutL =~ kindPeg and inDoc:
         if matches[0] == "func":
           functions.add(Function(
             name : subjectName
           ))
           lastType = FUN
-        elif matches[0] == "san":
-          sanities.add(Sanity(
-            name : subjectName
-          ))
-          lastType = SAN
         elif matches[0] == "type":
           types.add(Type(
             name : subjectName
           ))
           lastType = TYP
-      elif mutL =~ descRegex and inDoc:
+        elif matches[0] == "san":
+          sanities.add(Sanity(
+            name : subjectName
+          ))
+          lastType = SAN
+      elif mutL =~ descPeg and inDoc:
         case lastType:
           of FUN:
             functions[functions.len - 1].desc = matches[0]
@@ -168,13 +172,13 @@ proc fileDoc(content: string, lang: LanguageConfig): JsonNode =
             types[types.len - 1].desc = matches[0]
           of SAN:
             sanities[sanities.len - 1].desc = matches[0]
-      elif mutL =~ paramRegex and inDoc:
+      elif mutL =~ paramPeg and inDoc and lastType == FUN:
         functions[functions.len - 1].params.add([matches[0], matches[1], matches[2].strip()])
-      elif mutL =~ fieldRegex and inDoc:
+      elif mutL =~ fieldPeg and inDoc and lastType == TYP:
         types[types.len - 1].fields.add([matches[0], matches[1], matches[2].strip()])
-      elif mutL =~ returnRegex and inDoc:
-        functions[functions.len - 1].returns = matches[0]
-      elif mutL =~ levelRegex and inDoc:
+      elif mutL =~ returnPeg and inDoc and lastType == FUN:
+        functions[functions.len - 1].returns = matches[0] #, matches[1].strip()]
+      elif mutL =~ levelPeg and inDoc and lastType == SAN:
         sanities[sanities.len - 1].level = matches[0].parseInt.int8
       else:
         inDoc = false
@@ -191,6 +195,7 @@ proc fileDoc(content: string, lang: LanguageConfig): JsonNode =
 # @desc Main documentation function, Generates the Json and calls the sugarcube generator.
 # @param config: [[Config]], The project config
 proc genDoc(config: Config, languages: seq[LanguageConfig]) =
+  var doc: seq[JsonNode] = @[]
   for dir in config.srcDirs:
     for file in walkDirRec(dir):
       var
@@ -203,7 +208,7 @@ proc genDoc(config: Config, languages: seq[LanguageConfig]) =
         cfile.close()
         doc = fileDoc(content, languages[file.splitFile.ext])
         if doc.len != 0:
-          createDir(Path("doc") / file.splitFile.dir)
+          createDir(Path("doc") / docDir)
           cfile = open($ (Path("doc") / file.changeFileExt("json")), fmWrite)
           cfile.write(doc)
           cfile.close()

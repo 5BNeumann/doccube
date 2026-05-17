@@ -6,6 +6,7 @@
 -->
 <<widget "registerfunc">>
 	<<run $funcs.push(_args[0])>>
+	<<run $allsymbols.push(_args[0])>>
 <</widget>>
 
 <!-- @doc registertype
@@ -14,6 +15,7 @@
 -->
 <<widget "registertype">>
 	<<run $types.push(_args[0])>>
+	<<run $allsymbols.push(_args[0])>>
 <</widget>>
 
 <!-- @doc registersan
@@ -22,6 +24,7 @@
 -->
 <<widget "registersan">>
 	<<run $sans.push(_args[0])>>
+	<<run $allsymbols.push(_args[0])>>
 <</widget>>
 
 <!-- @doc registerfile
@@ -30,6 +33,7 @@
 -->
 <<widget "registerfile">>
 	<<set $files.push(_args[0] + "-file")>>
+	<<run $allsymbols.push(_args[0]) + "-file">>
 <</widget>>
 
 <!-- @doc listfuncs
@@ -61,7 +65,8 @@
 <<widget "listsans">>
 	<h2>Sanity</h2>
 	<<for _i, _san range $sans>>
-		<<link _san _san>><</link>>
+		<<set _vname to _san.substr(0, _san.indexOf("-"))>>
+		<<link _vname _san>><</link>>
 	<</for>>
 <</widget>>
 
@@ -75,4 +80,9 @@
 		<<set _vname to _file.replace("-file", "")>>
 		<<link _vname _file>><</link>>
 	<</for>>
+<</widget>>
+
+<<widget "search">>
+	<h3>Search</h3>
+	<<textbox "$search" "" "Searchresult">>
 <</widget>>
