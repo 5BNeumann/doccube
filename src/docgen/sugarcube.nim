@@ -2,7 +2,7 @@ when defined(release):
   {.checks: off, optimization: speed.}
 
 import
-  std/[dirs, paths, strutils, json],
+  std/[dirs, paths, strutils, json, tables],
   ../types
 
 # @doc 5BNeumann
@@ -115,7 +115,7 @@ proc makeSingleFile(docContent: JsonNode, filename: string): string =
 # @kind func
 # @desc Creates a sugarcube documentation from pre-processed data. Public.
 # @param config: [[Config]], the project's config, mostly used to get the name and description fo the project
-proc makeSugarcube*(config: Config) =
+proc makeSugarcube*(config: Config, docList: Table[string, JsonNode]) =
   var
     stdFile: File
     docFiles: File
@@ -125,9 +125,15 @@ proc makeSugarcube*(config: Config) =
     stdfile.close()
   else:
     echo "An error occured, you probably fucked up something."
+  for filename, node in docList:
+    createDir(Path("doc/sugarcube") / Path(filename).splitFile.dir)
+    if docFiles.open($ (Path("doc/sugarcube") / Path(filename).changeFileExt("twee")), fmWrite):
+      docFiles.write(makeSingleFile(node, $ Path(filename).splitFile.name))
+      docFiles.close()
+#[
   for file in walkDirRec(Path("doc/")):
     if ($ file).endsWith(".json"):
       createDir(Path("doc/sugarcube") / file.splitFile.dir)
       if docFiles.open($ (Path("doc/sugarcube") / file.changeFileExt("twee")), fmWrite):
         docFiles.write(makeSingleFile(parseFile($ file), $ file.splitFile.name))
-        docFiles.close()
+        docFiles.close()]#

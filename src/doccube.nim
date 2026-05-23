@@ -195,7 +195,7 @@ proc fileDoc(content: string, lang: LanguageConfig): JsonNode =
 # @desc Main documentation function, Generates the Json and calls the sugarcube generator.
 # @param config: [[Config]], The project config
 proc genDoc(config: Config, languages: seq[LanguageConfig]) =
-  var doc: seq[JsonNode] = @[]
+  var docList: Table[string, JsonNode]
   for dir in config.srcDirs:
     for file in walkDirRec(dir):
       var
@@ -207,13 +207,14 @@ proc genDoc(config: Config, languages: seq[LanguageConfig]) =
         content = cfile.readAll()
         cfile.close()
         doc = fileDoc(content, languages[file.splitFile.ext])
+        docList[$(file.splitFile.dir / file.splitFile.name)] = doc
         if doc.len != 0:
           createDir(Path("doc") / docDir)
           cfile = open($ (Path("doc") / file.changeFileExt("json")), fmWrite)
           cfile.write(doc)
           cfile.close()
   if config.sugarcube:
-    makeSugarcube(config)
+    makeSugarcube(config, docList)
 
 # @doc genLangConfig
 # @kind func

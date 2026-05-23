@@ -25,18 +25,13 @@ code {
 
 <<search>>
 
-<<listfuncs>>
-<<listtypes>>
-<<listfiles>>
+<<listfuncs>><<listtypes>><<listfiles>>
 <!--<<listsans>>-->
 
 :: Searchresult
 
 <<for _i, _symbol range $allsymbols>>
-	<<if _symbol.includes($search)>>
-		[[_symbol]]
+	<<if _symbol.includes($search.toLower())>>
+		[[_symbol]]<br>
 	<</if>>
-	<<run console.log(_symbol.includes($search))>>
-	<<run console.log(_symbol)>>
-	<<run console.log($search)>>
 <</for>>
