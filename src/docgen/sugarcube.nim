@@ -51,8 +51,8 @@ proc makeStandardPassage(project: ProjectDesc, files: Table[string, FileDocument
         init &= TYPE_STRING % [typ.name]
     if file.sanities.len != 0:
       for san in file.sanities:
-        init &= SAN_STRING % [san.name & "-" & $ filename]
-    init &= FILE_STRING % [$ filename]
+        init &= SAN_STRING % [san.name & "-" & $ Path(filename).splitFile[1]]
+    init &= FILE_STRING % [$ Path(filename).splitFile[1]]
   return "$1\n$2\n$3\n$4\n$5\n" % [STANDARD_WIDGETS, STATIC_PASSAGES, title, start, init]
 
 
@@ -97,10 +97,10 @@ proc makeSingleFile(docContent: FileDocumentation, filename: string): string =
       fileSection &= INCLUDE % [typ.name]
       typesSection &= PASSAGE_NAME % [typ.name]
       typesSection &= typ.desc & "\n"
-      if typ.inherits != "":
-        typesSection &= INCLUDE % [typ.inherits & "-fields"] & "\n"
       typesSection &= INCLUDE % [typ.name & "-fields"]
       typesSection &= PASSAGE_NAME % [typ.name & "-fields"]
+      if typ.inherits != "":
+        typesSection &= INCLUDE % [typ.inherits & "-fields"] & "\n"
       for field in typ.fields:
         typesSection &= PARAMDESC % [field[0], field[1], field[2]]
   if docContent.sanities.len != 0:
