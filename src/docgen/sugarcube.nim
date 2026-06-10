@@ -2,7 +2,7 @@ when defined(release):
   {.checks: off, optimization: speed.}
 
 import
-  std/[dirs, paths, strutils, json, tables],
+  std/[dirs, paths, strutils, tables],
   ../types
 
 # @doc 5BNeumann
@@ -26,6 +26,7 @@ const
   TITLE: string = "<h1>$1</h1>"
   SUBTITLE: string = "<h2>$1</h2>"
   FUNCALL: string = CODE_BLOCK % ["$1($2): $3"]
+  NORET_FUNCALL: string = CODE_BLOCK % ["$1($2)"]
   PARAMDESC: string = CODE_BLOCK % ["$1: $2"] & "$3\n\n"
   INCLUDE: string = "<<include $1>>\n"
 
@@ -35,39 +36,30 @@ const
 # @desc This function dynamically generates the standard passages such as Start, StoryInit and StoryTitle
 # @param project: [[ProjectDesc]], gives the name and description of the project
 # @returns string
-proc makeStandardPassage(project: ProjectDesc): string =
+proc makeStandardPassage(project: ProjectDesc, files: Table[string, FileDocumentation]): string =
   let
     title: string = STORY_TITLE & "\n" & project.title
     start: string = STORY_START & "\n<h1>$1</h1>\n$2" % [project.title, project.desc] & ALL_SYMBOLS
   var
     init: string = STORY_INIT
-  for file in walkDirRec(Path("doc/")):
-    if ($ file).endsWith(".json"):
-      var
-        jsonContent: JsonNode = parseFile($ file)
-        functionsNode: JsonNode
-        typesNode: JsonNode
-        sanityNode: JsonNode
-      if jsonContent.hasKey("functions"):
-        functionsNode = jsonContent["functions"]
-        for fun in functionsNode:
-          init &= FUNC_STRING % [fun["name"].getStr]
-      if jsonContent.hasKey("types"):
-        typesNode = jsonContent["types"]
-        for typ in typesNode:
-          init &= TYPE_STRING % [typ["name"].getStr]
-      if jsonContent.hasKey("sanity"):
-        sanityNode = jsonContent["sanity"]
-        for san in sanityNode:
-          init &= SAN_STRING % [san["name"].getStr & "-" & $ file.splitFile.name]
-      init &= FILE_STRING % [$ file.splitFile.name]
+  for filename, file in files:
+    if file.functions.len != 0:
+      for fun in file.functions:
+        init &= FUNC_STRING % [fun.name]
+    if file.types.len != 0:
+      for typ in file.types:
+        init &= TYPE_STRING % [typ.name]
+    if file.sanities.len != 0:
+      for san in file.sanities:
+        init &= SAN_STRING % [san.name & "-" & $ filename]
+    init &= FILE_STRING % [$ filename]
   return "$1\n$2\n$3\n$4\n$5\n" % [STANDARD_WIDGETS, STATIC_PASSAGES, title, start, init]
 
 
-proc args(fun: JsonNode): string =
+proc args(fun: Function): string =
   var t: seq[string] = @[]
-  for i in fun["params"]:
-    t.add(i[0].getStr & " : " & i[1].getStr)
+  for i in fun.params:
+    t.add(i[0] & " : " & i[1])
   return t.join(", ")
 
 
@@ -76,52 +68,61 @@ proc args(fun: JsonNode): string =
 # @desc Generates the documentation for a single file (functions, types and sanity).
 # @param docContent: JsonNode, The documentation in Json format.
 # @param filename: string, The name of the documented file.
-# @returns string
-proc makeSingleFile(docContent: JsonNode, filename: string): string =
+# @returns string, The raw sugarcube documentation for the file.
+proc makeSingleFile(docContent: FileDocumentation, filename: string): string =
   var
     fileSection: string = ""
     functionSection: string = ""
     typesSection: string = ""
     sanitySection: string = ""
   fileSection &= PASSAGE_NAME % [filename & "-file"]
-  if docContent.hasKey("functions"):
-    for fun in docContent["functions"]:
-      fileSection &= INCLUDE % [fun["name"].getStr]
-      functionSection &= PASSAGE_NAME % [fun["name"].getStr]
-      functionSection &= SUBTITLE % [fun["name"].getStr] & "\n"
-      functionSection &= FUNCALL % [fun["name"].getStr, args(fun), fun["returns"].getStr]
-      functionSection &= fun["desc"].getStr & "\n"
-      for param in fun["params"]:
-        functionSection &= PARAMDESC % [param[0].getStr, param[1].getStr, param[2].getStr]
-      if fun["returns"].getStr != "":
-        functionSection &= "returns : " & CODE_BLOCK % [fun["returns"].getStr] #Elems[0].getStr] & "$1\n\n" % [fun["returns"].getElems[1].getStr]
-  if docContent.hasKey("types"):
-    for typ in docContent["types"]:
-      fileSection &= INCLUDE % [typ["name"].getStr]
-      typesSection &= PASSAGE_NAME % [typ["name"].getStr]
-      typesSection &= typ["desc"].getStr & "\n"
-      for field in typ["fields"]:
-        typesSection &= PARAMDESC % [field[0].getStr, field[1].getStr, field[2].getStr]
-  if docContent.hasKey("sanity"):
-    for san in docContent["sanity"]:
-      fileSection &= INCLUDE % [san["name"].getStr & "-" & filename]
-      sanitySection &= PASSAGE_NAME % [san["name"].getStr & "-" & filename]
-      sanitySection &= SUBTITLE % [san["name"].getStr] & "\n"
-      sanitySection &= san["desc"].getStr & "\n"
-      sanitySection &= """<meter id="sanity" value="$1" min="-128" max="127">$1</meter>""" % [$ san["level"].getInt] & "\n"
+  if docContent.functions.len != 0:
+    for fun in docContent.functions:
+      fileSection &= INCLUDE % [fun.name]
+      functionSection &= PASSAGE_NAME % [fun.name]
+      functionSection &= SUBTITLE % [fun.name] & "\n"
+      if fun.returns[0] != "":
+        functionSection &= FUNCALL % [fun.name, args(fun), fun.returns[0]]
+      else:
+        functionSection &= NORET_FUNCALL % [fun.name, args(fun)]
+      functionSection &= fun.desc & "\n"
+      for param in fun.params:
+        functionSection &= PARAMDESC % [param[0], param[1], param[2]]
+      if fun.returns[0] != "":
+        functionSection &= "returns : " & CODE_BLOCK % [fun.returns[0]]
+        if fun.returns[1] != "":
+          functionSection &= "$1\n\n" % [fun.returns[1]]
+  if docContent.types.len != 0:
+    for typ in docContent.types:
+      fileSection &= INCLUDE % [typ.name]
+      typesSection &= PASSAGE_NAME % [typ.name]
+      typesSection &= typ.desc & "\n"
+      if typ.inherits != "":
+        typesSection &= INCLUDE % [typ.inherits & "-fields"] & "\n"
+      typesSection &= INCLUDE % [typ.name & "-fields"]
+      typesSection &= PASSAGE_NAME % [typ.name & "-fields"]
+      for field in typ.fields:
+        typesSection &= PARAMDESC % [field[0], field[1], field[2]]
+  if docContent.sanities.len != 0:
+    for san in docContent.sanities:
+      fileSection &= INCLUDE % [san.name & "-" & filename]
+      sanitySection &= PASSAGE_NAME % [san.name & "-" & filename]
+      sanitySection &= SUBTITLE % [san.name] & "\n"
+      sanitySection &= san.desc & "\n"
+      sanitySection &= """<meter id="sanity" value="$1" min="-128" max="127">$1</meter>""" % [$ san.level] & "\n"
   return fileSection & functionSection & typesSection & sanitySection
 
 # @doc makeSugarcube
 # @kind func
 # @desc Creates a sugarcube documentation from pre-processed data. Public.
 # @param config: [[Config]], the project's config, mostly used to get the name and description fo the project
-proc makeSugarcube*(config: Config, docList: Table[string, JsonNode]) =
+proc makeSugarcube*(config: Config, docList: Table[string, FileDocumentation]) =
   var
     stdFile: File
     docFiles: File
   createDir(Path("doc/sugarcube"))
   if stdfile.open("doc/sugarcube/00_story_info.twee", fmWrite):
-    stdfile.write(makeStandardPassage(config.toProjectDesc))
+    stdfile.write(makeStandardPassage(config.toProjectDesc, docList))
     stdfile.close()
   else:
     echo "An error occured, you probably fucked up something."

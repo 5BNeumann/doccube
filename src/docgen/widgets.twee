@@ -41,10 +41,10 @@
 <!-- @desc Displays the list of documented functions.
 -->
 <<widget "listfuncs">>
-	<h2>Functions</h2>
-	<<for _i, _func range $funcs>>
+	<h2>Functions</h2>\
+	<<for _i, _func range $funcs>>\
 		<<link _func _func>><</link>>
-	<</for>>
+	<</for>>\
 <</widget>>
 
 <!-- @doc listtypes
@@ -52,10 +52,10 @@
 <!-- @desc Displays the list of documented types.
 -->
 <<widget "listtypes">>
-	<h2>Types</h2>
-	<<for _i, _type range $types>>
+	<h2>Types</h2>\
+	<<for _i, _type range $types>>\
 		<<link _type _type>><</link>>
-	<</for>>
+	<</for>>\
 <</widget>>
 
 <!-- @doc listsans
@@ -63,11 +63,11 @@
 <!-- @desc Displays the list of documented sanities.
 -->
 <<widget "listsans">>
-	<h2>Sanity</h2>
-	<<for _i, _san range $sans>>
-		<<set _vname to _san.substr(0, _san.indexOf("-"))>>
+	<h2>Sanity</h2>\
+	<<for _i, _san range $sans>>\
+		<<set _vname to _san.substr(0, _san.indexOf("-"))>>\
 		<<link _vname _san>><</link>>
-	<</for>>
+	<</for>>\
 <</widget>>
 
 <!-- @doc listfiles
@@ -75,11 +75,11 @@
 <!-- @desc Displays the list of documented files.
 -->
 <<widget "listfiles">>
-	<h2>Files</h2>
-	<<for _i, _file range $files>>
-		<<set _vname to _file.replace("-file", "")>>
+	<h2>Files</h2>\
+	<<for _i, _file range $files>>\
+		<<set _vname to _file.replace("-file", "")>>\
 		<<link _vname _file>><</link>>
-	<</for>>
+	<</for>>\
 <</widget>>
 
 <<widget "search">>

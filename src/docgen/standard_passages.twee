@@ -8,6 +8,10 @@
     display: none;
 }
 
+#textbox-search {
+	min-width:14em;
+}
+
 code {
 	border: 2px solid black;
 	background-color: #333333;
@@ -30,8 +34,8 @@ code {
 
 :: Searchresult
 
-<<for _i, _symbol range $allsymbols>>
-	<<if _symbol.includes($search.toLower())>>
-		[[_symbol]]<br>
-	<</if>>
-<</for>>
+<<for _i, _symbol range $allsymbols>>\
+	<<if _symbol.toLowerCase().includes($search.toLowerCase())>>\
+		[[_symbol]]
+	<</if>>\
+<</for>>\
