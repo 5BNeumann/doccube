@@ -3,6 +3,9 @@ when defined(release):
 
 import std/paths
 
+from std/dynlib import LibHandle
+from std/tables import Table
+
 type
   # @doc Config
   # @kind type
@@ -11,13 +14,12 @@ type
   # @field name: string, the project's name
   # @field desc: string, the project's description
   # @field sugarcube: bool, should sugarcube doc be generated ?
-  # @field tex: bool, should tex doc be generated ? (unimplemented)
+  # @field mandoc: bool, should man doc be generated ?
   Config* {.final.} = object
     srcDirs*: seq[Path] = @[]
     name*: string = "Unnamed"
     desc*: string = ""
-    sugarcube*: bool
-    tex*: bool
+    outputs*: Table[string,(LibHandle,bool)]
   # @doc ProjectDesc
   # @kind type
   # @desc Description of a project

@@ -3,15 +3,15 @@ import
     dirs,
     strutils,
     paths,
-#    re,
     pegs,
     json,
     jsonutils,
     tables,
-    cmdline
+    cmdline,
+    dynlib
   ],
-  types,
-  docgen/sugarcube
+  types
+#  docgen/[mandoc, sugarcube]
 
 type
   Kind = enum
@@ -29,6 +29,9 @@ let
   fieldPeg: Peg = peg"'@field' \s+ {\w+} \s* ':' \s* {[a-zA-Z0-9_[\]]+} (','{.+})?$"
   returnPeg: Peg = peg"'@return' 's'? \s+ {[[\]a-zA-Z0-9_]+(\s\*+)? (','{.+})?$}"
   levelPeg: Peg = peg"'@level' \s+ {\d+}"
+
+var
+  plugins: seq[(string, LibHandle)] = @[]
 
 proc contains(lang: LanguageConfig, sub: string): bool =
   return sub == lang.extention
@@ -65,12 +68,11 @@ proc parseConfig(): Config =
     elif line.startsWith("desc:"):
       line.removePrefix("desc:")
       config.desc = line
-    elif line.startsWith("sugarcube_out:"):
-      line.removePrefix("sugarcube_out:")
-      config.sugarcube = line.parseBool
-    elif line.startsWith("tex_out:"):
-      line.removePrefix("tex_out:")
-      config.tex = line.parseBool
+    else:
+      for plugin in plugins:
+        if line.startsWith(plugin[0] & "_out:"):
+          line.removePrefix(plugin[0] & "_out:")
+          config.outputs[plugin[0]] = (plugin[1], line.parseBool)
     try:
       line = configFile.readLine()
     except IOError:
@@ -160,8 +162,12 @@ proc genDoc(config: Config, languages: seq[LanguageConfig]) =
           cfile = open($ (Path("doc") / file.changeFileExt("json")), fmWrite)
           cfile.write(doc.toJson)
           cfile.close()
-  if config.sugarcube:
-    makeSugarcube(config, docList)
+  for plugin in plugins:
+    if plugin[0] in config.outputs:
+      let docFun = cast[proc (c: Config, d: Table[string, FileDocumentation]) {.stdcall.}](config.outputs[plugin[0]][0].symAddr("genDoc"))
+      if docFun == nil:
+        quit("genDoc function not found in plugin: " & plugin[0])
+      docFun(config, docList)
 
 # @doc genLangConfig
 # @kind func
@@ -195,5 +201,11 @@ when isMainModule:
     config: Config
     languages: seq[LanguageConfig] = @[]
   languages.genLangConfig()
+  for pluginPath in walkDirRec(Path("./plugin")):
+    let pl = loadLib($ pluginPath)
+    if pl != nil:
+      plugins.add(($ pluginPath.splitFile.name, pl))
+    else:
+      echo "\x1b[38;2;255;255;0m[WARNING] Non-plugin file found at ", pluginPath, "\x1b[0m"
   config = parseConfig()
   genDoc(config, languages)

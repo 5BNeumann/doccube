@@ -116,6 +116,7 @@ proc makeSingleFile(docContent: FileDocumentation, filename: string): string =
 # @kind func
 # @desc Creates a sugarcube documentation from pre-processed data. Public.
 # @param config: [[Config]], the project's config, mostly used to get the name and description fo the project
+# @param docList: Table[string, [[FileDocumentation]]], The list of all files to document.
 proc makeSugarcube*(config: Config, docList: Table[string, FileDocumentation]) =
   var
     stdFile: File
@@ -131,10 +132,9 @@ proc makeSugarcube*(config: Config, docList: Table[string, FileDocumentation]) =
     if docFiles.open($ (Path("doc/sugarcube") / Path(filename).changeFileExt("twee")), fmWrite):
       docFiles.write(makeSingleFile(node, $ Path(filename).splitFile.name))
       docFiles.close()
-#[
-  for file in walkDirRec(Path("doc/")):
-    if ($ file).endsWith(".json"):
-      createDir(Path("doc/sugarcube") / file.splitFile.dir)
-      if docFiles.open($ (Path("doc/sugarcube") / file.changeFileExt("twee")), fmWrite):
-        docFiles.write(makeSingleFile(parseFile($ file), $ file.splitFile.name))
-        docFiles.close()]#
+
+# @doc genDoc
+# @kind func
+# @desc Forwards makeSugarcube to the new plugin API.
+proc genDoc*(config: Config, docList: Table[string, FileDocumentation]) {.stdcall, dynlib, exportc.} =
+  makeSugarcube(config, docList)
